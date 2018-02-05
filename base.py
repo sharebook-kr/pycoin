@@ -1,12 +1,11 @@
+from abc import ABC, abstractmethod
 from enum import IntEnum
 import requests
 
 
-class HttpParam :
-    def __init__(self, url, headers=None, payloads=None):
-        self.url = url
-        self.headers = headers
-        self.payloads = payloads
+class HttpMethod:
+    def __init__(self):
+        raise AttributeError
 
     @staticmethod
     def get(func):
@@ -14,6 +13,7 @@ class HttpParam :
             param = func(*args, **kwargs)
             resp = requests.get(url=param.url, headers=param.headers, data=param.payloads)
             return resp.json()
+
         return decorator
 
     @staticmethod
@@ -22,37 +22,85 @@ class HttpParam :
             param = func(*args, **kwargs)
             resp = requests.get(url=param.url, headers=param.headers, data=param.payloads)
             return resp.json()
+
         return decorator
 
 
-class CoinApi:
+class HttpParam:
+    def __init__(self, url, headers=None, payloads=None):
+        self.url = url
+        self.headers = headers
+        self.payloads = payloads
+
+
+class CoinApi(ABC):
+    @abstractmethod
     def get_ticker(self):
-        # must be overridden in subclass
-        raise NotImplementedError
+        """               
+        :return: 지원하는 Coin class의 Enum 리스트 [Coin.BTC, Coin.ETH]
+        """
+        pass
 
-    def get_price(self, currency):
-        # must be overridden in subclass
-        raise NotImplementedError
+    @abstractmethod
+    def get_price(self, coin):
+        """                        
+        :param coin: Coin Class의 Enum type
+        :return: Coin의 최근 체결가를 반환
+        """
+        pass
 
-    def buy(self, currency, price, volume):
-        # must be overridden in subclass
-        raise NotImplementedError
+    @abstractmethod
+    def buy(self, coin, price, volume):
+        """  
 
-    def sell(self, currency, price, volume):
-        # must be overridden in subclass
-        raise NotImplementedError
+        :param coin: 
+        :param price: 
+        :param volume: 
+        :return: 
+        """
+        pass
 
-    def cancel(self, currency, price, volume):
-        # must be overridden in subclass
-        raise NotImplementedError
+    @abstractmethod
+    def sell(self, coin, price, volume):
+        """
 
+        :param coin: 
+        :param price: 
+        :param volume: 
+        :return: 
+        """
+        pass
+
+    @abstractmethod
+    def cancel(self, coin, price, volume):
+        """
+
+        :param coin: 
+        :param price: 
+        :param volume: 
+        :return: 
+        """
+        pass
+
+    @abstractmethod
     def status(self, order_id):
-        # must be overridden in subclass
-        raise NotImplementedError
+        """
 
-    def history(self, currency, price, volume):
-        # must be overridden in subclass
-        raise NotImplementedError
+        :param order_id: 
+        :return: 
+        """
+        pass
+
+    @abstractmethod
+    def history(self, coin, price, volume):
+        """
+
+        :param coin: 
+        :param price: 
+        :param volume: 
+        :return: 
+        """
+        pass
 
 
 class Coin(IntEnum):
@@ -68,4 +116,6 @@ class Coin(IntEnum):
     QTUM = 9
     BTG = 10
     EOS = 11
+
+
 globals().update(Coin.__members__)
