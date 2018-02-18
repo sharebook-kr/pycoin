@@ -1,5 +1,4 @@
 from base import *
-import time
 
 # 결과 상태코드 표
 # 0000 정상
@@ -16,41 +15,41 @@ import time
 # - https://www.bithumb.com/u1/US127
 
 
-class BithumbAdapter(CoinApi):
-    def sell(self, coin, price, volume):
-        pass
-
-    def history(self, coin, price, volume):
-        pass
-
-    def status(self, order_id):
-        pass
-
-    def buy(self, coin, price, volume):
-        pass
-
-    def get_ticker(self):
-        pass
-
-    def cancel(self, coin, price, volume):
-        pass
-
-    def get_price(self, coin):
-        pass
-
-
-class BithumbPublic:
+class BithumbPublic(CoinPublicApi):
     """
-    Restriction : 1초당 20회 요청 가능
+    Bithumb Public API 
+     - Restriction : 1초당 20회 요청 가능
     """
-    @staticmethod
-    def _get_support_coins():
+    def __init__(self):
+        self.bithumb = _BithumbPublic()
+
+    def get_support_coins(self):
         """
-        Korbit Public API가 지원하는 코인의 리스트를 반환
-        :return: Coin Enumerator 리스트
+        지원하는 Coin의 Enum List를 반환한다. 
+        :return: Coin의 Enum List (예:[Coin.BTC, Coin.ETH, Coin.XRP]
         """
         return _ticker.keys()
 
+    def get_prices(self, coin=Coin.BTC, count=1, market=Market.KRW, date=None):
+        """
+        코인의 거래 정보 리스트를 반환한다.
+        :param coin: 조회할 코인의 Enum type 
+        :param count: 조회할 가격 정보의 개수
+        :param market: 결제 화폐 
+        :param date: 문자열 형태의 일자 (예:19/02/2018)
+        :return: count 개수의 거래 정보가 저장된 리스트
+                 [(거래단가, 거래수량, 거래금액), (...), ...]
+        """
+        if date is not None :
+            # Bithum 공개 API는 특정 일자의 가격 정보 조회 기능을 지원하지 않음
+            raise NotImplementedError
+        response = self.bithumb.get_transactions(coin=coin, count=count)
+        if response['status'] != "0000":
+            return []
+        return [(int(x['price']), float(x['units_traded']), float(x['total'])) for x in response['data']]
+
+
+class _BithumbPublic:
     @HttpMethod.get
     def get_last_trading_info(self, coin=Coin.BTC):
         """
@@ -74,8 +73,7 @@ class BithumbPublic:
             }
         }         
         """
-        time.sleep(0.1)
-        return HttpParam("https://api.bithumb.com/public/ticker/" + _ticker[coin])
+        return HttpParam(url="https://api.bithumb.com/public/ticker/" + _ticker[coin])
 
     @HttpMethod.get
     def get_order_book(self, coin=Coin.BTC):
@@ -104,14 +102,14 @@ class BithumbPublic:
                 }
             }     
             """
-        time.sleep(0.1)
         return HttpParam("https://api.bithumb.com/public/orderbook/" + _ticker[coin])
 
     @HttpMethod.get
-    def get_recent_transactions(self, coin=Coin.BTC):
+    def get_transactions(self, coin=Coin.BTC, count=1):
         """
-        거래소 거래 체결 완료 내역
+        거래소 거래 체결 완료 내역s
         :param coin: Coin Class Enumerator
+        :param count: 조회할 데이터의 개수
         :return: json type
         {
             "status"    : 결과 상태 코드
@@ -126,8 +124,9 @@ class BithumbPublic:
             ]
         }
         """
-        time.sleep(0.1)
-        return HttpParam("https://api.bithumb.com/public/recent_transactions/" + _ticker[coin])
+        url = "https://api.bithumb.com/public/recent_transactions/" + _ticker[coin]
+        data = "count=" + str(count)
+        return HttpParam(url=url, data=data)
 
 
 _ticker = {
@@ -145,8 +144,13 @@ _ticker = {
     Coin.EOS: "EOS"
 }
 
+
 if __name__ == "__main__":
     bp = BithumbPublic()
-    print(bp.get_last_trading_info(Coin.BTC))
-    print(bp.get_order_book(Coin.BTC))
-    print(bp.get_recent_transactions(Coin.BTC))
+    resp = bp.get_prices(Coin.BTC)
+    for r in resp:
+        print (r)
+
+    resp = bp.get_prices(coin=Coin.BTC, count=2)
+    for r in resp:
+        print (r)

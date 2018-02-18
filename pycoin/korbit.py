@@ -5,22 +5,51 @@ import time
 # - https://apidocs.korbit.co.kr/
 
 
-class KorbitPublic():
+class KorbitPublic(CoinPublicApi):
     """
-    Restriction : API 호출 빈도 
-     - Ticker 기능은 60초에 60번 호출
-     - 그 외의 기능은 1초에 12번 호출
+    Korbit Public API
+     - Restriction : Ticker 기능은 60초에 60번 / 그 외의 기능은 1초에 12번 호출
     """
-    @staticmethod
-    def _get_support_coins():
+    def __init__(self):
+        self.korbit = _KorbitPublic()
+
+    def get_support_coins(self):
         """
-        Korbit Public API가 지원하는 코인의 리스트를 반환
-        :return: Coin Enumerator 리스트
+        지원하는 Coin의 Enum List를 반환한다. 
+        :return: Coin의 Enum List (예:[Coin.BTC, Coin.ETH, Coin.XRP]
         """
         return _ticker.keys()
 
+    def get_prices(self, coin=Coin.BTC, count=1, market=Market.KRW, date=None):
+        """
+        코인의 거래 정보 리스트를 반환한다.
+        :param coin: 조회할 코인의 Enum type 
+        :param count: 조회할 가격 정보의 개수
+        :param market: 결제 화폐 
+        :param date: 문자열 형태의 일자 (예:19/02/2018)
+        :return: count 개수의 거래 정보가 저장된 리스트
+                 [(거래단가, 거래수량, 거래금액), (...), ...]
+        """
+        if date is not None :
+            # Korbit 공개 API는 특정 일자의 가격 정보 조회 기능을 지원하지 않음
+            raise NotImplementedError
+        response = self.korbit.get_transactions(coin=coin)
+        return [(int(x['price']), float(x['amount']), int(x['price']) * float(x['amount'])) for x in response[:count]]
+
+
+class _KorbitPublic():
     @HttpMethod.get
-    def get_last_trading_price(self, coin=Coin.BTC):
+    def get_transactions(self, coin=Coin.BTC):
+        """
+        거래소 거래 체결 완료 내역s
+        :param coin: Coin Class Enumerator        
+        :return: 
+        """
+        params = {"currency_pair": _ticker[coin]}
+        return HttpParam("https://api.korbit.co.kr/v1/transactions", params)
+
+    @HttpMethod.get
+    def get_last_price(self, coin=Coin.BTC):
         """
         최종 체결된 암호 화폐의 가격 정보
         :param coin:  Coin Class Enumerator
@@ -30,14 +59,13 @@ class KorbitPublic():
           "last"        : 최종 체결 가격
         }
         """
-        time.sleep(1)
         params = {"currency_pair": _ticker[coin]}
         return HttpParam("https://api.korbit.co.kr/v1/ticker", params)
 
     @HttpMethod.get
-    def get_last_trading_info(self, coin=Coin.BTC):
+    def get_detailed(self, coin=Coin.BTC):
         """
-
+        시장 현황 상세정보를 반환한다.
         :param coin:  Coin Class Enumerator
         :return: json type
         {
@@ -50,7 +78,6 @@ class KorbitPublic():
           "volume"      : 거래량
         }
         """
-        time.sleep(0.1)
         params = {"currency_pair": _ticker[coin]}
         return HttpParam("https://api.korbit.co.kr/v1/detailed", params)
 
@@ -70,7 +97,6 @@ class KorbitPublic():
             ]
         }
         """
-        time.sleep(0.1)
         params = {"currency_pair": _ticker[coin]}
         return HttpParam("https://api.korbit.co.kr/v1/orderbook", params)
 
@@ -85,11 +111,6 @@ _ticker = {
 
 if __name__ == "__main__":
     kb = KorbitPublic()
-    print(kb.get_last_trading_price(Coin.BTC))
-    # Not support in v1
-    #print(kb.get_last_trading_info(Coin.BTC))
+    print(kb.get_prices(Coin.BTC))
+    print(kb.get_prices(Coin.BTC, count=2))
 
-    print(kb.get_order_book(Coin.BTC))
-    bids = kb.get_order_book(Coin.BTC)['bids']
-    for bid in bids:
-        print (bid)
